@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# mkwinelauncher
+#
+#    Make a launcher for a Windows executable.
+#
+
+if [[ -z "$1" || -z "$2" ]]
+then
+	echo "usage: $0 <exe> <name>"
+	echo -e "\twhere 'exe' is a Windows executable"
+	echo -e "\tand 'name' is the desired launcher name"
+	exit 1
+fi
+
+DESTDIR=/usr/local/bin
+
+TMPFILE=`mktemp`
+EXEPATH=`realpath "$1"`
+EXEDIR=`dirname "$EXEPATH"`
+LAUNCHER=$DESTDIR/$2
+
+if [[ -z "$WINEPREFIX" ]]
+then
+	WINE=wine
+else
+	WINE="env WINEPREFIX=\"$WINEPREFIX\" wine"
+fi
+
+echo -e "#!/bin/sh\n\ncd \"$EXEDIR\"\n$WINE \"$EXEPATH\"\n" >> $TMPFILE
+
+echo "   INSTALL $LAUNCHER"
+install -o root "$TMPFILE" "$LAUNCHER"
+
+rm $TMPFILE

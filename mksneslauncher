@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# mksneslauncher
+#
+#    Make a launcher for a SNES game.
+#
+
+if [[ -z "$1" || -z "$2" ]]
+then
+	echo "usage: $0 <ROM> <name>"
+	echo -e "\twhere 'ROM' is a SNES ROM"
+	echo -e "\tand 'name' is the desired launcher name\n"
+	exit 1
+fi
+
+SNESDIR=/usr/share/games/snes
+GAMESDIR=/usr/games/bin
+EMULATOR=zsnes
+
+TMPFILE=`mktemp`
+ROM=$SNESDIR/`basename $1`
+LAUNCHER=$GAMESDIR/$2
+
+echo -e "#!/bin/sh\n\n$EMULATOR $ROM\n" >> $TMPFILE
+
+echo "   INSTALL $LAUNCHER"
+install -o root -g games -m 750 $TMPFILE $LAUNCHER
+echo "   INSTALL $ROM"
+install -o root -g games -m 660 $1 $ROM
+
+rm $TMPFILE
