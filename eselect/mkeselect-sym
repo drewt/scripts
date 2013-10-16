@@ -1,0 +1,82 @@
+#!/bin/bash
+
+VERSION=0.1
+PROGNAME=mkeselect-sym
+TEMPLATE=template.eselect
+
+description() {
+	echo -e "$PROGNAME generates eselect scripts to manage symbolic " \
+		"\nlinks.  Like kernel.eselect, these scripts manage a " \
+		"\nsymbolic link X which links to one of many files or " \
+		"\ndirectories named X-* (where '*' is the wildcard character).\n"
+}
+
+usage() {
+	echo -e "Usage: $PROGNAME [OPTIONS] <symlink>" \
+		"\n\nAvailable options:" \
+		"\n\t-h,--help" \
+		"\n\t\tPrint help message." \
+		"\n\t-m,--maintainer <name>" \
+		"\n\t\tThe name of the eselect script maintainer." \
+		"\n\t-n,--name <name>" \
+		"\n\t\tThe name of the symlink in eselect help." \
+		"\n\t-o,--output <file>" \
+		"\n\t\tWrite output to a file." \
+		"\n\t-p,--pattern <pattern>" \
+		"\n\t\tPattern for finding symlink targets.  Occurences of {} " \
+		"\n\t\tare replaced by the output of \`basename <symlink>\`." \
+		"\n\t--script-version <version>" \
+		"\n\t\tThe version of the eselect script." \
+		"\n\t-v,--version" \
+		"\n\t\tPrint the version of this script.\n"
+}
+
+MAINTAINER=$USER
+SCRIPTVERSION=`date +'%Y%m%d'`
+
+TEMP=`getopt -o hm:n:o:p:v --long help,maintainer:,name:,output:,pattern:,script-version:,version \
+	-- "$@"`
+
+if [ $? != 0 ] ; then usage ; exit 1; fi
+
+eval set -- "$TEMP"
+
+while true ; do
+	case "$1" in
+		-h|--help) description ; usage ; exit 0 ;;
+		-m|--maintainer) MAINTAINER="$2" ; shift 2 ;;
+		-n|--name) NAME="$2" ; shift 2 ;;
+		-o|--output) OUTPUT="$2" ; shift 2 ;;
+		-p|--pattern) UPATTERN="$2" ; shift 2 ;;
+		--script-version) VERSION="$2" ; shift 2 ;;
+		-v|--version) echo "$PROGNAME $VERSION" ; exit 0 ;;
+		--) shift ; break ;;
+		*) usage ; exit 1 ;;
+	esac
+done
+
+if [ -z "$1" ] ; then usage ; exit 1 ; fi
+
+BASENAME=`basename "$1"`
+BASEPATH=`dirname "$1"`
+FULLPATH=$BASEPATH/$BASENAME
+
+if [ -z "$NAME" ] ; then NAME=$BASENAME ; fi
+if [ -z "$UPATTERN" ]
+then
+	PATTERN="$FULLPATH-[[:alnum:]]*"
+else
+	PATTERN=`echo "$UPATTERN" | sed "s|{}|$BASENAME|g"`
+fi
+echo "$PATTERN"
+
+if [ -n "$OUTPUT" ]
+then
+	echo "Writing to $OUTPUT..."
+	exec > $OUTPUT
+fi
+
+sed -e "s|@FULLPATH|$FULLPATH|g" -e "s|@BASEPATH|$BASEPATH|g" \
+	-e "s|@NAME|$NAME|g" -e "s|@MAINTAINER|$MAINTAINER|g" \
+	-e "s|@VERSION|$SCRIPTVERSION|g" -e "s|@PATTERN|$PATTERN|g" \
+	$TEMPLATE
